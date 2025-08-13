@@ -1,64 +1,85 @@
 import json
 import logging
+import os
 from datetime import datetime, timedelta
-from idlelib.rpc import response_queue
 from typing import Dict, List, Tuple
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Настройка логирования
-logging.basicConfig(filename='app.log', level=logging.INFO,
-                    format='%(asctime)s - %(levelnames)s - %(message)s')
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
-def get_date_range(date_str: str, period: str = 'M') -> Tuple:
+
+def load_user_settings(path: str = "user_settings.json") -> Dict:
+    path = os.path.join(os.path.dirname(__file__), "..", "user_settings.json")
+    path = os.path.abspath(path)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(f"Не удалось прочитать файл: {e}")
+        return {"user_currencies": ["USD", "EUR"], "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]}
+
+
+def get_date_range(date_str: str, period: str = "M") -> Tuple:
     """Возвращает диапозон дат взависимости от периода"""
-    date = datetime.strptime(date_str, '%Y-%m-%d')
+    date = datetime.strptime(date_str, "%Y-%m-%d")
+    end = pd.Timestamp(date)
 
-    if period == 'W':
-        start = date - timedelta(days=date.weekday())
-        end = start + timedelta(days=6)
-    elif period == 'M':
-        start = date.replace(day=1)
-        end = date
-    elif period == 'Y':
-        start = date.replace(month=1, day=1)
-        end = date
-    elif period == 'ALL':
-        start = datetime.min
-        end = date
+    if period == "W":
+        start = date - timedelta(days=end.weekday())
+        week_end = start + timedelta(days=6)
+        end = pd.Timestamp(min(week_end, end))
+    elif period == "M":
+        start = end.replace(day=1)
+    elif period == "Y":
+        start = end.replace(month=1, day=1)
+    elif period == "ALL":
+        start = pd.Timestamp.min
     else:
         raise ValueError("Неверный период. Допустимо: W, M, Y, ALL")
 
-    return start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')
+    return pd.Timestamp(start), pd.Timestamp(end)
 
 
-def filter_data(df: pd.DataFrame, start_date: str, end_date: str) -> pd.DataFrame:
+def filter_data(df: pd.DataFrame, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
     """Фильтрует DataFrame по диапазону дат"""
-    mask = (df['date'] >= start_date) & (df['date'] <= end_date)
-    return df.loc[mask]
+
+    local = df.copy()
+    mask = (local["date"] >= start_date) & (local["date"] <= end_date)
+    return local.loc[mask]
 
 
 def calc_expenses(df: pd.DataFrame) -> Dict:
     """Считаем расходы по категориям"""
-    expenses = df[df['amount'] < 0]. copy()
-    expenses['amount'] = expenses['amount'].abs()
 
-    #Основные категории (Топ-7)
-    main_categories = expenses.grouby('category')['amount'].sum().nlargest(7)
-    other = expenses[~expenses['category'].isin(main_categories.index)]
-    other_sum = other['amount'].sum()
+    expenses = df[df["amount"] < 0].copy()
+    expenses["amount"] = expenses["amount"].abs()
+
+    # Основные категории (Топ-7)
+    EXCLUDE = {"Наличные", "Переводы"}
+    expenses_base = expenses[~expenses["category"].isin(EXCLUDE)]
+    main_categories = expenses_base.groupby("category")["amount"].sum().nlargest(7)
+
+    other = expenses[~expenses["category"].isin(main_categories.index)]
+    other_sum = other["amount"].sum()
 
     result = {
-        "total_amount": round((expenses['amount'].sum())),
-        "main": [{"category": k, "amount": round(v)} for k, v in main_categories.items()]
-
+        "total_amount": round(expenses["amount"].sum()),
+        "main": [{"category": k, "amount": round(v)} for k, v in main_categories.items()],
         "transfers_and_cash": [
-            {"category": "Наличные", "amount": round(expenses[expenses['categories'] ==
-            'Наличные']['amount'].sum())},
-            {"category": "Переводы", "amount": round(expenses[expenses['category'] ==
-            'Переводы']['amount'].sum())}
-        ]
+            {"category": "Наличные", "amount": round(expenses[expenses["category"] == "Наличные"]["amount"].sum())},
+            {"category": "Переводы", "amount": round(expenses[expenses["category"] == "Переводы"]["amount"].sum())},
+        ],
     }
 
     if other_sum > 0:
@@ -67,54 +88,65 @@ def calc_expenses(df: pd.DataFrame) -> Dict:
     return result
 
 
-def get_currency_rates(api_key: str) -> List:
+def get_currency_rates() -> List[Dict]:
     """Получаем текущие курсы валют через API"""
-    URL = "https://api.apilayer.com/exchangerates_data/latest"
-    headers = {"apikey": API_KEY}
+
+    api_key = os.getenv("API_KEY_CURRENCY")
+    if not api_key:
+        logger.warning("API_KEY_CURRENCY не найден")
+        return []
+
+    url = "https://api.apilayer.com/exchangerates_data/latest"
+    headers = {"apikey": api_key}
+    params = {"base": "USD"}  # Базовая валюта USD
 
     try:
-        response = requests.get(URL, headers=headers)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
 
-        if not data.get('success', False):
-            logging.error(f"API ошибка: {data.get('error', {}).get('info', 'Unknown error')}")
+        if not data.get("success", True):
+            error = data.get("error", {}).get("info", "Unknown error")
+            logger.error(f"API error: {error}")
             return []
 
-        base_currency = data['base']
-        rates = data['rates']
+        rates = data.get("rates", {})
 
-        result = []
-        for currency in ['USD', 'EUR']:
-            if currency == base_currency:
-                rate = 1.0
-            else:
-                rate = rates.get(currency)
-                if not rate:
-                    continue
-
-            result.append({
-                "currency": currency,
-                "rate": round(rate, 2)
-            })
-
-        return result
-
-    except (KeyError, ValueError) as e:
-        logging.error(f"Ошибка обработки данных: {e}")
-
-    return []
-
-
-def get_stock_prices(api_key) -> List:
-    """Получаем текущие цены акций"""
-    stocks = ['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA']
-
-    try:
         return [
-            {"stock": stock, "price": round(float(requests.get(f'https://api.stockdata.org/v1/data/quote?symbols={stock}').json()['data'][0]['price']), 2)}
-            for stock in stocks
+            {"currency": "USD", "rate": 1.0},
+            {"currency": "EUR", "rate": round(rates.get("EUR", 0), 2)},
+            {"currency": "RUB", "rate": round(rates.get("RUB", 0), 2)},
         ]
+
     except Exception as e:
-        logging.error(f"Ошибка получения акций: {e}")
+        logger.error(f"Ошибка получения курсов валют: {str(e)}")
         return []
+
+
+def get_stock_prices() -> List[Dict]:
+    """Получаем текущие цены акций"""
+
+    settings = load_user_settings()
+    tickers = settings.get("user_stocks", ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"])
+    api_key = os.getenv("API_KEY_STOCKS")
+
+    if not api_key:
+        logger.warning("API_KEY_STOCKS не найден")
+        return [{"stock": t, "price": 0.0} for t in tickers]
+
+    results = []
+    url = "https://www.alphavantage.co/query"
+
+    for ticker in tickers:
+        try:
+            params = {"function": "GLOBAL_QUOTE", "symbol": ticker, "apikey": api_key}
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            price = float(data.get("Global Quote", {}).get("05. price", 0.0))
+            results.append({"stock": ticker, "price": round(price, 2)})
+        except Exception as e:
+            logger.error(f"Не удалось получить цену для: {ticker}, {e}")
+            results.append({"stock": ticker, "price": 0.0})  # Значение по умолчанию при ошибке
+    return results
