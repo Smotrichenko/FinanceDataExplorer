@@ -27,7 +27,7 @@ def load_user_settings(path: str = "user_settings.json") -> Dict:
             return json.load(f)
     except Exception as e:
         logger.warning(f"Не удалось прочитать файл: {e}")
-        return {"user_currencies": ["USD", "EUR"], "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]}
+        return {e}
 
 
 def get_date_range(date_str: str, period: str = "M") -> Tuple:

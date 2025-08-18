@@ -75,8 +75,8 @@ def events_page(input_date: str, period: str = "M", df: pd.DataFrame = None) -> 
 # Загрузка данных
 try:
     df = pd.read_excel(
-        r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations_my.xls",
-        parse_dates=["Дата операции"],
+        r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations.xlsx",
+        parse_dates=True,
         dtype={"Сумма операции": float},
     )
 
@@ -85,7 +85,7 @@ try:
     df.rename(columns={"Дата операции": "date", "Категория": "category", "Сумма операции": "amount"}, inplace=True)
 
     # Преобразование дат
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], dayfirst=True, errors="coerce")
     df = df.dropna(subset=["date", "amount"])
 
 
@@ -94,7 +94,7 @@ except Exception as e:
     exit()
 
 # Обработка и сохранение
-result = events_page("2025-07-31", "M", df)
+result = events_page("2021-01-30", "M", df)
 
 with open("output.json", "w", encoding="utf-8") as f:
     json.dump(result, f, ensure_ascii=False, indent=4)
