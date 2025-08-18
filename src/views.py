@@ -76,7 +76,7 @@ def events_page(input_date: str, period: str = "M", df: pd.DataFrame = None) -> 
 try:
     df = pd.read_excel(
         r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations.xlsx",
-        parse_dates=["Дата операции"],
+        parse_dates=True,
         dtype={"Сумма операции": float},
     )
 
@@ -85,7 +85,7 @@ try:
     df.rename(columns={"Дата операции": "date", "Категория": "category", "Сумма операции": "amount"}, inplace=True)
 
     # Преобразование дат
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], dayfirst=True, errors="coerce")
     df = df.dropna(subset=["date", "amount"])
 
 
