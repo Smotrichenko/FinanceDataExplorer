@@ -79,8 +79,8 @@ def analyze_cashback(data: pd.DataFrame, year: int, month: int) -> Dict[str, flo
 
 file_path = r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations.xlsx"
 df = pd.read_excel(file_path)
-analysis = analyze_cashback(df, 2020, 10)
-
-with open("cashback.json", "w", encoding="utf-8") as f:
-    json.dump(analysis, f, ensure_ascii=False, indent=4)
-    logger.info("Данные успешно сохранены в cashback.json")
+# analysis = analyze_cashback(df, 2020, 10)
+#
+# with open("cashback.json", "w", encoding="utf-8") as f:
+#     json.dump(analysis, f, ensure_ascii=False, indent=4)
+#     logger.info("Данные успешно сохранены в cashback.json")

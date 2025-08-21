@@ -121,5 +121,5 @@ def load_and_process_operations():
 
 
 df = load_and_process_operations()
-report = spending_by_weekly(df, date="2020-08-06")
-print(report)
+# report = spending_by_weekly(df, date="2020-08-06")
+# print(report)

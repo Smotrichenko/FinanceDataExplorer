@@ -94,8 +94,8 @@ except Exception as e:
     exit()
 
 # Обработка и сохранение
-result = events_page("2021-01-30", "M", df)
-
-with open("output.json", "w", encoding="utf-8") as f:
-    json.dump(result, f, ensure_ascii=False, indent=4)
-    logger.info("Данные успешно сохранены в output.json")
+# result = events_page("2021-05-30", "M", df)
+#
+# with open("output.json", "w", encoding="utf-8") as f:
+#     json.dump(result, f, ensure_ascii=False, indent=4)
+#     logger.info("Данные успешно сохранены в output.json")
