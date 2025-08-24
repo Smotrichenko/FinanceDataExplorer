@@ -26,6 +26,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 src/output.json
+src/weekday_spending.json
+src/cashback.json
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

@@ -1,0 +1,22 @@
+[
+  {
+    "weekday":"Вторник",
+    "average_spending":2000.0
+  },
+  {
+    "weekday":"Среда",
+    "average_spending":500.0
+  },
+  {
+    "weekday":"Четверг",
+    "average_spending":800.0
+  },
+  {
+    "weekday":"Пятница",
+    "average_spending":700.0
+  },
+  {
+    "weekday":"Воскресенье",
+    "average_spending":1000.0
+  }
+]

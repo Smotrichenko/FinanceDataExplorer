@@ -1,12 +1,12 @@
 import json
-import os
 import logging
+import os
+
 import pandas as pd
 
-from src.views import events_page
-from src.services import analyze_cashback
 from src.reports import spending_by_weekly
-
+from src.services import analyze_cashback
+from src.views import events_page
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
@@ -47,11 +47,9 @@ def main():
 
     df_events = df_raw.copy()
     df_events.columns = df_events.columns.str.strip()
-    df_events = df_events.rename(columns={
-        "Дата операции": "date",
-        "Категория": "category",
-        "Сумма операции": "amount"
-    })
+    df_events = df_events.rename(
+        columns={"Дата операции": "date", "Категория": "category", "Сумма операции": "amount"}
+    )
 
     if "date" in df_events.columns:
         df_events["date"] = pd.to_datetime(df_events["date"], errors="coerce", dayfirst=True)
@@ -70,7 +68,6 @@ def main():
     except Exception as e:
         logger.error(f"Ошибка в events_page: {e}")
 
-
     try:
         logger.info("Считаю кэшбэк по категориям за месяц")
         cashback_result = analyze_cashback(df_raw, CASHBACK_YEAR, CASHBACK_MONTH)
@@ -79,7 +76,6 @@ def main():
         logger.info(f"Готово. Сохранен файл: {CASHBACK_OUT_FILE}")
     except Exception as e:
         logger.error(f"Ошибка в анализе кэшбэка: {e}")
-
 
     try:
         logger.info("Считаю отчет: 'траты по дням недели' (за последние 3 месяца)")
@@ -96,6 +92,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
