@@ -1,5 +1,5 @@
-import json
 import logging
+from pathlib import Path
 from typing import Dict
 
 import pandas as pd
@@ -13,6 +13,12 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+REPORTS_DIR = BASE_DIR / "reports"
+REPORTS_DIR.mkdir(exist_ok=True)
 
 
 def events_page(input_date: str, period: str = "M", df: pd.DataFrame = None) -> Dict:
@@ -92,10 +98,3 @@ try:
 except Exception as e:
     logger.error(f"Ошибка загрузки данных: {str(e)}", exc_info=True)
     exit()
-
-# Обработка и сохранение
-# result = events_page("2021-05-30", "M", df)
-#
-# with open("output.json", "w", encoding="utf-8") as f:
-#     json.dump(result, f, ensure_ascii=False, indent=4)
-#     logger.info("Данные успешно сохранены в output.json")

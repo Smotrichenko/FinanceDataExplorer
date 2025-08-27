@@ -1,5 +1,5 @@
-import json
 import logging
+from pathlib import Path
 from typing import Dict
 
 import pandas as pd
@@ -11,6 +11,12 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+REPORTS_DIR = BASE_DIR / "reports"
+REPORTS_DIR.mkdir(exist_ok=True)
 
 
 def analyze_cashback(data: pd.DataFrame, year: int, month: int) -> Dict[str, float]:
@@ -75,12 +81,3 @@ def analyze_cashback(data: pd.DataFrame, year: int, month: int) -> Dict[str, flo
     except Exception as e:
         logger.critical(f"Критическая ошибка при анализе кэшбэка: {e}")
         raise
-
-
-file_path = r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations.xlsx"
-df = pd.read_excel(file_path)
-# analysis = analyze_cashback(df, 2020, 10)
-#
-# with open("cashback.json", "w", encoding="utf-8") as f:
-#     json.dump(analysis, f, ensure_ascii=False, indent=4)
-#     logger.info("Данные успешно сохранены в cashback.json")
