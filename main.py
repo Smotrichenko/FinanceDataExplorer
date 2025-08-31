@@ -1,12 +1,12 @@
 import json
-import os
 import logging
+from pathlib import Path
+
 import pandas as pd
 
-from src.views import events_page
+from src.reports import report_to_file, spending_by_weekly
 from src.services import analyze_cashback
-from src.reports import spending_by_weekly
-
+from src.views import events_page
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
@@ -17,23 +17,27 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FILE_PATH = os.path.join(BASE_DIR, "..", "data", "operations.xlsx")
-FILE_PATH = os.path.abspath(FILE_PATH)
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+REPORTS_DIR = BASE_DIR / "reports"
+REPORTS_DIR.mkdir(exist_ok=True)
+
+FILE_PATH = DATA_DIR / "operations.xlsx"
 
 
 # Для блока 'События'
-EVENTS_DATE = "2021-08-30"
+EVENTS_DATE = "2021-01-15"
 EVENTS_PERIOD = "M"
-EVENTS_OUT_FILE = "output.json"
+EVENTS_OUT_FILE = REPORTS_DIR / "output_events.json"
 
 # Для кэшбэка
-CASHBACK_YEAR = 2021
-CASHBACK_MONTH = 11
-CASHBACK_OUT_FILE = "cashback.json"
+CASHBACK_YEAR = 2019
+CASHBACK_MONTH = 6
+CASHBACK_OUT_FILE = REPORTS_DIR / "cashback.json"
 
 # Для отчета
-WEEKDAY_DATE = "2021-04-30"
+WEEKDAY_DATE = "2020-06-08"
+WEEKDAY_OUT_FILE = REPORTS_DIR / "weekday_spending.json"
 
 
 def main():
@@ -47,11 +51,9 @@ def main():
 
     df_events = df_raw.copy()
     df_events.columns = df_events.columns.str.strip()
-    df_events = df_events.rename(columns={
-        "Дата операции": "date",
-        "Категория": "category",
-        "Сумма операции": "amount"
-    })
+    df_events = df_events.rename(
+        columns={"Дата операции": "date", "Категория": "category", "Сумма операции": "amount"}
+    )
 
     if "date" in df_events.columns:
         df_events["date"] = pd.to_datetime(df_events["date"], errors="coerce", dayfirst=True)
@@ -70,7 +72,6 @@ def main():
     except Exception as e:
         logger.error(f"Ошибка в events_page: {e}")
 
-
     try:
         logger.info("Считаю кэшбэк по категориям за месяц")
         cashback_result = analyze_cashback(df_raw, CASHBACK_YEAR, CASHBACK_MONTH)
@@ -80,22 +81,23 @@ def main():
     except Exception as e:
         logger.error(f"Ошибка в анализе кэшбэка: {e}")
 
-
     try:
-        logger.info("Считаю отчет: 'траты по дням недели' (за последние 3 месяца)")
-        report_df = spending_by_weekly(df_raw, date=WEEKDAY_DATE)
+        logger.info("Считаю отчёт 'траты по дням недели'...")
+        try:
+            raw_func = spending_by_weekly.__wrapped__
+        except AttributeError:
+            raw_func = spending_by_weekly
+        wrapped = report_to_file(filename=str(WEEKDAY_OUT_FILE))(raw_func)
+        _df = wrapped(df_raw, date=WEEKDAY_DATE)
+        logger.info(f"Готово. Сохранён файл: {WEEKDAY_OUT_FILE}")
 
         try:
-            print(report_df.head(7).to_string(index=False))
+            print(_df.head(7).to_string(index=False))
         except Exception:
-            print(report_df.head(7))
-        logger.info("Готово. Файл отчета сохранен: weekday_spending.json")
+            print(_df.head(7))
     except Exception as e:
-        logger.error(f"Ошибка в отчете: {e}")
+        logger.error(f"Ошибка в отчёте по дням недели: {e}")
 
 
 if __name__ == "__main__":
     main()
-
-
-

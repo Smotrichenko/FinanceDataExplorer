@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import pandas as pd
@@ -19,9 +20,11 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 
+BASE_DIR = Path(__file__).resolve().parents[1]
+SETTINGS_PATH = BASE_DIR / "user_settings.json"
+
+
 def load_user_settings(path: str = "user_settings.json") -> Dict:
-    path = os.path.join(os.path.dirname(__file__), "..", "user_settings.json")
-    path = os.path.abspath(path)
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)

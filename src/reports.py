@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 from functools import wraps
+from pathlib import Path
 from typing import Callable, Optional
 
 import pandas as pd
@@ -13,6 +14,12 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+REPORTS_DIR = BASE_DIR / "reports"
+REPORTS_DIR.mkdir(exist_ok=True)
 
 
 def report_to_file(func=None, *, filename: Optional[str] = None):
@@ -113,13 +120,3 @@ def spending_by_weekly(transactions: pd.DataFrame, date: Optional[str] = None) -
     out["average_spending"] = out["average_spending"].round(2)
     logger.info("Отчёт сформирован.")
     return out
-
-
-def load_and_process_operations():
-    file_path = r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations.xlsx"
-    return pd.read_excel(file_path)
-
-
-df = load_and_process_operations()
-# report = spending_by_weekly(df, date="2020-08-06")
-# print(report)
