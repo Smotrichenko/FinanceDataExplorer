@@ -26,17 +26,17 @@ FILE_PATH = DATA_DIR / "operations.xlsx"
 
 
 # Для блока 'События'
-EVENTS_DATE = "2021-01-15"
+EVENTS_DATE = "2020-02-02"
 EVENTS_PERIOD = "M"
 EVENTS_OUT_FILE = REPORTS_DIR / "output_events.json"
 
 # Для кэшбэка
-CASHBACK_YEAR = 2019
-CASHBACK_MONTH = 6
+CASHBACK_YEAR = 2020
+CASHBACK_MONTH = 2
 CASHBACK_OUT_FILE = REPORTS_DIR / "cashback.json"
 
 # Для отчета
-WEEKDAY_DATE = "2020-06-08"
+WEEKDAY_DATE = "2020-02-02"
 WEEKDAY_OUT_FILE = REPORTS_DIR / "weekday_spending.json"
 
 

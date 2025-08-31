@@ -76,25 +76,3 @@ def events_page(input_date: str, period: str = "M", df: pd.DataFrame = None) -> 
     except Exception as e:
         logger.error(f"Ошибка при обработке данных: {str(e)}")
         return {"error": str(e)}
-
-
-# Загрузка данных
-try:
-    df = pd.read_excel(
-        r"C:\Users\smotr\Desktop\FinanceDataExplorer\data\operations.xlsx",
-        parse_dates=True,
-        dtype={"Сумма операции": float},
-    )
-
-    # Очистка и переименование
-    df.columns = df.columns.str.strip()
-    df.rename(columns={"Дата операции": "date", "Категория": "category", "Сумма операции": "amount"}, inplace=True)
-
-    # Преобразование дат
-    df["date"] = pd.to_datetime(df["date"], dayfirst=True, errors="coerce")
-    df = df.dropna(subset=["date", "amount"])
-
-
-except Exception as e:
-    logger.error(f"Ошибка загрузки данных: {str(e)}", exc_info=True)
-    exit()
